@@ -1,7 +1,17 @@
-import React from "react";
+
 import Titles from "./components/Titles";
 import Form from "./components/Form";
 import Weather from "./components/Weather";
+import axios from "axios"
+import Pagination from "./components/Pagination"
+import Route from "./components/Route";
+import PokemonList from "./components/PokemonList"
+
+import React, { useState, useEffect } from "react"
+
+
+
+
 
 
 
@@ -9,19 +19,46 @@ const API_KEY = "cebc5f548fbe1d30ebcf7ab76b28b1f6";
 
 
 
-class App extends React.Component {
+function App() {
 
-  state = {
-    temperature: undefined, // initial state
-    city: undefined,
-    country: undefined,
-    humidity: undefined,
-    description: undefined,
-    error: undefined,
-    quote: ''
+
+  const [pokemon, setPokemon] = useState([])
+  const [info, setInfo] = useState({})
+  const [currentPageUrl, setCurrentPageUrl] = useState(
+    "https://pokeapi.co/api/v2/pokemon"
+  )
+  const [nextPageUrl, setNextPageUrl] = useState()
+  const [prevPageUrl, setPrevPageUrl] = useState()
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    let cancel
+    axios
+      .get(currentPageUrl, {
+        cancelToken: new axios.CancelToken((c) => (cancel = c)),
+      })
+      .then((res) => {
+        setLoading(false)
+        setNextPageUrl(res.data.next)
+        setPrevPageUrl(res.data.previous)
+        setPokemon(res.data.results.map((p) => p.name))
+      })
+
+    return () => cancel()
+  }, [currentPageUrl])
+
+  function gotoNextPage() {
+    setCurrentPageUrl(nextPageUrl)
   }
 
-  getWeather = async (e) => {
+  function gotoPrevPage() {
+    setCurrentPageUrl(prevPageUrl)
+  }
+
+  if (loading) return "Loading..."
+
+  const getWeather = async (e) => {
     e.preventDefault(); // stops the page from doing a full refresh
 
     const city = e.target.elements.city.value;
@@ -30,7 +67,7 @@ class App extends React.Component {
     const data = await api_call.json();
 
     if (city && country) {
-      this.setState({
+      setInfo({
         temperature: data.main.temp,
         city: data.name,
         country: data.sys.country,
@@ -39,7 +76,7 @@ class App extends React.Component {
         error: ''
       })
     } else {
-      this.setState({
+      setInfo({
         temperature: undefined,
         city: undefined,
         country: undefined,
@@ -59,36 +96,59 @@ class App extends React.Component {
 
 
 
-  render() {
-    return (
-      <div>
-        <div className="wrapper">
-          <div className="main">
-            <div className="container">
-              <div className="row">
-                <div className="col-xs-5 title-container">
-                  <Titles />
+  return (
+    <div>
 
-                </div>
-                <div className="col-xs-7 form-container">
-                  <Form getWeather={this.getWeather} />
-                  <Weather
-                    temperature={this.state.temperature}
-                    city={this.state.city}
-                    country={this.state.country}
-                    humidity={this.state.humidity}
-                    description={this.state.description}
-                    error={this.state.error}
-                  />
+      <Route path="/">
 
+        <div>
+          <div className="wrapper">
+            <div className="main">
+              <div className="container">
+                <div className="row">
+                  <div className="col-xs-5 title-container">
+                    <Titles />
+
+                  </div>
+                  <div className="col-xs-7 form-container">
+                    <Form getWeather={getWeather} />
+                    <Weather
+                      temperature={info.temperature}
+                      city={info.city}
+                      country={info.country}
+                      humidity={info.humidity}
+                      description={info.description}
+                      error={info.error}
+                    />
+
+
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    );
-  }
-};
+
+
+
+      </Route>
+
+
+
+      <Route path="/pokemon">
+        <div>
+          <PokemonList pokemon={pokemon} />
+          <Pagination
+            gotoNextPage={nextPageUrl && gotoNextPage}
+            gotoPrevPage={prevPageUrl && gotoPrevPage}
+          />
+        </div>
+
+      </Route>
+
+    </div >
+  );
+}
+
 
 export default App;

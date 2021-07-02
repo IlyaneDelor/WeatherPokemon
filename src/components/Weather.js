@@ -32,6 +32,8 @@ class Weather extends React.Component {
                 {
                     this.props.error && <p className="weather__error">{this.props.error}</p>
                 }
+                <a href="/pokemon"><button> Pokemon with Weather</button>
+                </a>
 
 
 
